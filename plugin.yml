@@ -1,0 +1,22 @@
+name: AutoKickAura
+version: 1.0.0
+main: pdm\Main
+api: [5.0.0]
+author: PDevChris
+commands:
+  auradetector:
+    description: Command to reload the plugin configuration.
+    usage: /<command> reload
+permissions:
+  auradetector.reload:
+    description: Allows a user to reload the plugin configuration.
+    default: op
+config:
+  kick_threshold: 3  # Number of kicks before a player gets banned.
+  ban_threshold: 0  # Set to 0 if bans should be immediate after the first offense.
+  ban_duration: 6  # Duration of the ban in days (6 days in this example).
+  kick_message: "You have been kicked for using hacks!"
+  ban_message: "You have been banned for using Aura!"
+  notify_staff_on_detection: true  # Whether staff members should be notified when a player is caught.
+  staff_notify_message: "Player {player} was detected using hacks and has been kicked/banned."
+  enabled: true  # Whether the hack detection is enabled or not.
