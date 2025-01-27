@@ -1,0 +1,35 @@
+# AutoKickAura Plugin Configuration
+# This file contains settings that control the behavior of the plugin
+
+# Whether or not the hack detection system is enabled.
+enabled: true
+
+# AutoAura Detection Settings
+autoaura:
+  enabled: true  # Whether AutoAura detection is enabled.
+  detection_threshold: 10  # The number of detections before the player is kicked.
+  kick_message: "You have been kicked for using AutoAura!"  # Message sent when a player is kicked for AutoAura.
+  notify_staff_on_detection: true  # Whether staff should be notified when AutoAura is detected.
+  staff_notify_message: "Player {player} was detected using AutoAura and has been kicked."
+
+# Hitbox Detection Settings
+hitbox:
+  enabled: true  # Whether Hitbox hack detection is enabled.
+  detection_threshold: 5  # The number of detections before the player is kicked.
+  kick_message: "You have been kicked for using a Hitbox hack!"  # Message sent when a player is kicked for Hitbox.
+  notify_staff_on_detection: true  # Whether staff should be notified when Hitbox hack is detected.
+  staff_notify_message: "Player {player} was detected using a Hitbox hack and has been kicked."
+
+# Kick Settings
+kick_threshold: 3  # Number of kicks before a player is banned.
+ban_threshold: 0  # Set to 0 if bans should be immediate after the first offense.
+ban_duration: 6  # Duration of the ban in days.
+kick_message: "You have been kicked for using hacks!"  # Default kick message for other hacks.
+ban_message: "You have been banned for using hacks!"  # Default ban message.
+
+# Staff Notifications Settings
+notify_staff_on_detection: true  # Whether staff members should be notified when a player is caught.
+staff_notify_message: "Player {player} was detected using hacks and has been kicked/banned."
+
+# General Settings
+log_enabled: true  # Whether to log detection events to the console.
