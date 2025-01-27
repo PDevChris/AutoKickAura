@@ -31,6 +31,12 @@ class Main extends PluginBase implements Listener {
     /** @var string */
     public $staffNotifyMessage;
 
+    /** @var Config */
+    private $languageConfig;
+
+    /** @var string */
+    private $language = 'en'; // Default language is English
+
     /** @var int */
     public $kickThreshold = 3;
 
@@ -44,6 +50,9 @@ class Main extends PluginBase implements Listener {
         $this->saveDefaultConfig();
         $this->config = $this->getConfig();
 
+        // Load the language file
+        $this->loadLanguage();
+
         // Read config settings
         $this->autoAuraEnabled = $this->config->get("autoAuraEnabled", true);
         $this->hitboxEnabled = $this->config->get("hitboxEnabled", true);
@@ -56,18 +65,29 @@ class Main extends PluginBase implements Listener {
         $this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
     }
 
+    public function loadLanguage(): void {
+        $languagePath = $this->getDataFolder() . "languages/" . $this->language . ".yml";
+
+        if (!file_exists($languagePath)) {
+            $this->getLogger()->warning("Language file for {$this->language} not found. Using default.");
+            $languagePath = $this->getDataFolder() . "languages/en.yml"; // Default to English
+        }
+
+        $this->languageConfig = new Config($languagePath, Config::YAML);
+    }
+
+    public function getLanguageMessage(string $key): string {
+        return $this->languageConfig->getNested("messages." . $key, "Message not found");
+    }
+
     // Detect AutoAura hack (basic example, needs refinement)
     public function detectAutoAura(Player $player): bool {
-        // Check if the player is constantly attacking or hitting multiple entities without cooldown.
-        // This is a very basic example. Implement your own advanced detection algorithm here.
-
+        // Example: Player too close to others
         $playerPos = $player->getPosition();
         $players = $this->getServer()->getOnlinePlayers();
 
         foreach ($players as $target) {
             if ($target->getPosition()->distance($playerPos) < 5) {
-                // Example condition: player is too close to others, which might indicate AutoAura.
-                // Advanced logic could include checking hit intervals or using more sophisticated detection.
                 return true; // Detected AutoAura
             }
         }
@@ -77,14 +97,11 @@ class Main extends PluginBase implements Listener {
 
     // Detect Hitbox hack (basic example, needs refinement)
     public function detectHitbox(Player $player): bool {
-        // Check if the player's hitbox is larger than expected (e.g., abnormal distance while hitting).
-        // Again, this is a basic example. You'll want to add more precise checks for hitbox size manipulation.
-
-        $playerHitbox = $player->getBoundingBox(); // Get the player's hitbox (bounding box).
-        $normalHitbox = new Vector3(0.6, 1.8, 0.6); // Standard hitbox dimensions (X, Y, Z)
+        // Example: Checking hitbox size
+        $playerHitbox = $player->getBoundingBox(); 
+        $normalHitbox = new Vector3(0.6, 1.8, 0.6); 
 
         if ($playerHitbox->getVolume() > $normalHitbox->getVolume() * 1.5) {
-            // If the player's hitbox is more than 1.5 times the size of the normal hitbox, it's likely a Hitbox hack.
             return true; // Detected Hitbox hack
         }
 
@@ -93,15 +110,33 @@ class Main extends PluginBase implements Listener {
 
     // Handle kick logic after detecting a hack
     public function handleKick(Player $player, string $message): void {
-        $player->kick($message, false); // Kick the player with the given message.
-        
+        // Fetch message from language
+        $kickMessage = $this->getLanguageMessage($message);
+        $player->kick($kickMessage, false);
+
         // Notify staff if enabled
         if ($this->config->get("notify_staff_on_detection", true)) {
+            $staffMessage = str_replace("{player}", $player->getName(), $this->staffNotifyMessage);
             foreach ($this->getServer()->getOnlinePlayers() as $staff) {
                 if ($staff->hasPermission("auradetector.reload")) {
-                    $staff->sendMessage(str_replace("{player}", $player->getName(), $this->staffNotifyMessage));
+                    $staff->sendMessage($staffMessage);
                 }
             }
+        }
+    }
+
+    // Player move detection for AutoAura and Hitbox
+    public function onPlayerMove(PlayerMoveEvent $event): void {
+        $player = $event->getPlayer();
+
+        if (!$player instanceof Player) return;
+
+        if ($this->autoAuraEnabled && $this->detectAutoAura($player)) {
+            $this->handleKick($player, "auto_aura_kick");
+        }
+
+        if ($this->hitboxEnabled && $this->detectHitbox($player)) {
+            $this->handleKick($player, "hitbox_kick");
         }
     }
 }
