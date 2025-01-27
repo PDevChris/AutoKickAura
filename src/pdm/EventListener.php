@@ -33,4 +33,12 @@ class EventListener implements Listener {
     }
 
     // Handle player joining to possibly apply settings or notify staff
-    public funct
+    public function onPlayerJoin(PlayerJoinEvent $event): void {
+        $player = $event->getPlayer();
+
+        // Optionally log or notify staff that a player has joined
+        if ($this->plugin->enabled) {
+            $this->plugin->getLogger()->info(TextFormat::GREEN . $player->getName() . " has joined the server.");
+        }
+    }
+}
