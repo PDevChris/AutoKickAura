@@ -5,15 +5,15 @@ namespace pdm;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\event\player\PlayerJoinEvent;
-use pocketmine\event\entity\EntityDamageEvent;
-use pocketmine\Player;
-use pocketmine\plugin\PluginBase;
+use pocketmine\event\player\Player;
+use pocketmine\utils\TextFormat;
 
 class EventListener implements Listener {
 
+    /** @var Main */
     private $plugin;
 
-    public function __construct(PluginBase $plugin) {
+    public function __construct(Main $plugin) {
         $this->plugin = $plugin;
     }
 
@@ -21,44 +21,16 @@ class EventListener implements Listener {
     public function onPlayerMove(PlayerMoveEvent $event): void {
         $player = $event->getPlayer();
 
-        // AutoAura detection
-        if ($this->plugin->autoAuraEnabled) {
-            if ($this->detectAutoAura($player)) {
-                $this->plugin->handleKick($player, $this->plugin->config->get("autoaura_kick_message"));
-            }
+        // Check if AutoAura detection is enabled
+        if ($this->plugin->autoAuraEnabled && $this->plugin->detectAutoAura($player)) {
+            $this->plugin->handleKick($player, $this->plugin->autoAuraKickMessage);
         }
 
-        // Hitbox detection
-        if ($this->plugin->hitboxEnabled) {
-            if ($this->detectHitboxHack($player)) {
-                $this->plugin->handleKick($player, $this->plugin->config->get("hitbox_kick_message"));
-            }
+        // Check if Hitbox detection is enabled
+        if ($this->plugin->hitboxEnabled && $this->plugin->detectHitbox($player)) {
+            $this->plugin->handleKick($player, $this->plugin->hitboxKickMessage);
         }
     }
 
-    // Handle player join events to notify staff
-    public function onPlayerJoin(PlayerJoinEvent $event): void {
-        $player = $event->getPlayer();
-
-        // Check if hack detection is enabled and notify staff
-        if ($this->plugin->config->get("notify_staff_on_detection", true)) {
-            foreach ($this->plugin->getServer()->getOnlinePlayers() as $staffPlayer) {
-                if ($staffPlayer->hasPermission("auradetector.reload")) {
-                    $staffPlayer->sendMessage(str_replace("{player}", $player->getName(), $this->plugin->config->get("staff_notify_message")));
-                }
-            }
-        }
-    }
-
-    // Placeholder for AutoAura hack detection logic
-    private function detectAutoAura(Player $player): bool {
-        // Implement the logic for detecting AutoAura hacks (placeholder logic)
-        return rand(0, 10) > 8;  // Simulating detection logic
-    }
-
-    // Placeholder for Hitbox hack detection logic
-    private function detectHitboxHack(Player $player): bool {
-        // Implement the logic for detecting Hitbox hacks (placeholder logic)
-        return rand(0, 10) > 8;  // Simulating detection logic
-    }
-}
+    // Handle player joining to possibly apply settings or notify staff
+    public funct
