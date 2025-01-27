@@ -1,0 +1,6 @@
+messages:
+  auto_aura_kick: "You have been kicked for using AutoAura!"
+  hitbox_kick: "You have been kicked for using a Hitbox hack!"
+  kick_notify: "Player {player} has been kicked for using a hack."
+  ban_notify: "Player {player} has been banned for using a hack."
+  staff_notify: "Player {player} was detected using hacks and has been kicked or banned."
