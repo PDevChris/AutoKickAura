@@ -71,11 +71,14 @@ public function handleKick(Player $player, string $reason): void {
     public function detectAutoAura(Player $player): bool {
         $radius = 5;
         $nearbyEntities = $player->getWorld()->getNearbyEntities($player->getBoundingBox()->expandedCopy($radius, $radius, $radius));
+    
         foreach ($nearbyEntities as $entity) {
             if ($entity instanceof Player && $entity !== $player) {
-                return true; // Detected AutoAura
+                $this->getLogger()->debug("AutoAura detected for player: {$player->getName()}");
+                return true;
             }
         }
+    
         return false;
     }
 
