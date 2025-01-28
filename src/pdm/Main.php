@@ -22,7 +22,7 @@ class Main extends PluginBase {
     public $autoAuraKickMessage = "AutoAura detected!";
     public $hitboxKickMessage = "Hitbox hack detected!";
 
-   public function onEnable(): void {
+    public function onEnable(): void {
         $this->saveDefaultConfig();
         $this->reloadConfig();
     
@@ -40,45 +40,45 @@ class Main extends PluginBase {
         $this->getLogger()->info("PDM Plugin Enabled.");
     }
 
-public function handleKick(Player $player, string $reason): void {
-    $playerName = $player->getName();
-
-    if (!isset($this->playerData[$playerName])) {
-        $this->playerData[$playerName] = ["warnings" => 0];
-    }
-
-    $this->playerData[$playerName]["warnings"]++;
-
-    if ($this->playerData[$playerName]["warnings"] >= $this->kickThreshold) {
-        $player->kick($reason);
-        $this->getLogger()->info("Kicked {$playerName} for: {$reason}");
-    } else {
-        $remainingWarnings = $this->kickThreshold - $this->playerData[$playerName]["warnings"];
-        $warningMessage = str_replace(
-            ["{reason}", "{remaining}"],
-            [$reason, $remainingWarnings],
-            $this->getConfig()->getNested("messages.warning_message", "Warning! {reason} ({remaining} warnings left before kick)")
-        );
-        $player->sendMessage($warningMessage);
-    }
-}
-
-
     public function onDisable(): void {
         $this->getLogger()->info("PDM Plugin Disabled.");
+    }
+
+    public function handleKick(Player $player, string $reason): void {
+        $playerName = $player->getName();
+
+        if ($player->hasPermission("pdm.bypass")) {
+            $this->getLogger()->info("Skipped punishment for {$player->getName()} (bypass permission).");
+            return;
+        }
+
+        // Ensure warnings are tracked properly
+        if (!isset($this->playerData[$playerName])) {
+            $this->playerData[$playerName] = ["warnings" => 0];
+        }
+
+        $this->playerData[$playerName]["warnings"]++;
+
+        if ($this->playerData[$playerName]["warnings"] >= $this->kickThreshold) {
+            $player->kick($reason);
+            $this->getLogger()->info("Kicked {$playerName} for: {$reason}");
+        } else {
+            $remainingWarnings = $this->kickThreshold - $this->playerData[$playerName]["warnings"];
+            $player->sendMessage("Warning! {$reason} ({$remainingWarnings} warnings left before kick)");
+        }
     }
 
     public function detectAutoAura(Player $player): bool {
         $radius = 5;
         $nearbyEntities = $player->getWorld()->getNearbyEntities($player->getBoundingBox()->expandedCopy($radius, $radius, $radius));
-    
+
         foreach ($nearbyEntities as $entity) {
             if ($entity instanceof Player && $entity !== $player) {
                 $this->getLogger()->debug("AutoAura detected for player: {$player->getName()}");
                 return true;
             }
         }
-    
+
         return false;
     }
 
@@ -87,28 +87,5 @@ public function handleKick(Player $player, string $reason): void {
         $playerHitbox = $player->getBoundingBox();
         $tolerance = 1.1; // Allow a small margin of error
         return $playerHitbox->getVolume() > $normalHitbox->getVolume() * $tolerance;
-    }
-
-    public function handleKick(Player $player, string $reason): void {
-    $playerName = $player->getName();
-        if ($player->hasPermission("pdm.bypass")) {
-        $this->getLogger()->info("Skipped punishment for {$player->getName()} (bypass permission).");
-        return;
-    }
-
-    // Ensure warnings are tracked properly
-    if (!isset($this->playerData[$playerName])) {
-        $this->playerData[$playerName] = ["warnings" => 0];
-    }
-
-    $this->playerData[$playerName]["warnings"]++;
-
-    if ($this->playerData[$playerName]["warnings"] >= $this->kickThreshold) {
-        $player->kick($reason);
-        $this->getLogger()->info("Kicked {$playerName} for: {$reason}");
-    } else {
-        $remainingWarnings = $this->kickThreshold - $this->playerData[$playerName]["warnings"];
-        $player->sendMessage("Warning! {$reason} ({$remainingWarnings} warnings left before kick)");
-    }
     }
 }
