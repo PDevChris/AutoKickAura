@@ -17,11 +17,20 @@ class EventListener implements Listener {
         $this->plugin = $plugin;
     }
 
-    // Triggered when a player moves.
     public function onPlayerMove(PlayerMoveEvent $event): void {
         $player = $event->getPlayer();
 
         if (!$player instanceof Player) return;
+
+        // Cooldown check: only check if enough time has passed
+        $currentTime = time();
+        $lastCheckTime = $this->plugin->lastCheckTimes[$player->getName()] ?? 0;
+
+        if ($currentTime - $lastCheckTime < 5) {
+            return; // Skip detection if it's too soon
+        }
+
+        $this->plugin->lastCheckTimes[$player->getName()] = $currentTime; // Update last check time
 
         // AutoAura Detection
         if ($this->plugin->autoAuraEnabled && $this->plugin->detectAutoAura($player)) {
@@ -34,14 +43,15 @@ class EventListener implements Listener {
         }
     }
 
-    // Triggered when a player joins.
     public function onPlayerJoin(PlayerJoinEvent $event): void {
         $player = $event->getPlayer();
 
-        // Additional checks can be made here if needed for new players joining.
+        // Send a message to players when they join
+        if ($this->plugin->autoAuraEnabled || $this->plugin->hitboxEnabled) {
+            $player->sendMessage("Welcome to the server! Please refrain from using hacks.");
+        }
     }
 
-    // Triggered when a player interacts with another entity (like another player).
     public function onPlayerInteractEntity(PlayerInteractEntityEvent $event): void {
         $player = $event->getPlayer();
 
