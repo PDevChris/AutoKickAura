@@ -60,20 +60,21 @@ class Main extends PluginBase {
     }
 
     public function handleKick(Player $player, string $reason): void {
-        $playerName = $player->getName();
+    $playerName = $player->getName();
 
-        if (!isset($this->playerData[$playerName]["warnings"])) {
-            $this->playerData[$playerName]["warnings"] = 0;
-        }
+    // Ensure warnings are tracked properly
+    if (!isset($this->playerData[$playerName])) {
+        $this->playerData[$playerName] = ["warnings" => 0];
+    }
 
-        $this->playerData[$playerName]["warnings"]++;
+    $this->playerData[$playerName]["warnings"]++;
 
-        if ($this->playerData[$playerName]["warnings"] >= $this->kickThreshold) {
-            $player->kick($reason);
-            $this->getLogger()->info("Kicked {$playerName} for: {$reason}");
-        } else {
-            $remainingWarnings = $this->kickThreshold - $this->playerData[$playerName]["warnings"];
-            $player->sendMessage("Warning! {$reason} ({$remainingWarnings} warnings left before kick)");
-        }
+    if ($this->playerData[$playerName]["warnings"] >= $this->kickThreshold) {
+        $player->kick($reason);
+        $this->getLogger()->info("Kicked {$playerName} for: {$reason}");
+    } else {
+        $remainingWarnings = $this->kickThreshold - $this->playerData[$playerName]["warnings"];
+        $player->sendMessage("Warning! {$reason} ({$remainingWarnings} warnings left before kick)");
+    }
     }
 }
