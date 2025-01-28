@@ -2,141 +2,151 @@
 
 namespace pdm;
 
-use pocketmine\plugin\PluginBase;
-use pocketmine\utils\Config;
-use pocketmine\player\Player;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\event\player\PlayerJoinEvent;
-use pocketmine\utils\TextFormat;
-use pocketmine\math\Vector3;
+use pocketmine\event\player\PlayerQuitEvent;
+use pocketmine\event\player\PlayerInteractEntityEvent;
+use pocketmine\player\Player;
+use pocketmine\plugin\PluginBase;
 
 class Main extends PluginBase implements Listener {
 
-    /** @var Config */
-    private $config;
-
     /** @var bool */
-    public $autoAuraEnabled = false;
-
-    /** @var bool */
-    public $hitboxEnabled = false;
-
-    /** @var string */
-    public $autoAuraKickMessage;
-
-    /** @var string */
-    public $hitboxKickMessage;
-
-    /** @var string */
-    public $staffNotifyMessage;
-
-    /** @var Config */
-    private $languageConfig;
-
-    /** @var string */
-    private $language = 'en'; // Default language is English
-
+    private $autoAuraEnabled;
+    private $hitboxEnabled;
+    
     /** @var int */
-    public $kickThreshold = 3;
+    private $kickThreshold;
+    private $banDuration;
 
-    /** @var int */
-    public $banDuration = 6;
-
-    /** @var bool */
-    public $enabled = true;
+    /** @var array */
+    private $playerData = [];
+    
+    /** @var string */
+    private $language;
 
     public function onEnable(): void {
         $this->saveDefaultConfig();
-        $this->config = $this->getConfig();
+        $this->reloadConfig();
 
-        // Load the language file
-        $this->loadLanguage();
-
-        // Read config settings
-        $this->autoAuraEnabled = $this->config->get("autoAuraEnabled", true);
-        $this->hitboxEnabled = $this->config->get("hitboxEnabled", true);
-        $this->autoAuraKickMessage = $this->config->get("autoAuraKickMessage", "You have been kicked for using AutoAura!");
-        $this->hitboxKickMessage = $this->config->get("hitboxKickMessage", "You have been kicked for using Hitbox hack!");
-        $this->staffNotifyMessage = $this->config->get("staffNotifyMessage", "Player {player} was detected using hacks.");
-        $this->kickThreshold = $this->config->get("kick_threshold", 3);
-        $this->banDuration = $this->config->get("ban_duration", 6);
-
-        $this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
+        // Load configuration with defaults
+        $this->autoAuraEnabled = $this->getConfig()->get("autoAuraEnabled", true);
+        $this->hitboxEnabled = $this->getConfig()->get("hitboxEnabled", true);
+        $this->kickThreshold = max(0, $this->getConfig()->get("kick_threshold", 3)); // Ensure non-negative
+        $this->banDuration = max(0, $this->getConfig()->get("ban_duration", 6)); // Ensure non-negative
+        $this->language = $this->getConfig()->get("language", "en");
+        
+        $this->getServer()->getPluginManager()->registerEvents($this, $this);
+        $this->getLogger()->info("PDM Plugin Enabled.");
     }
 
-    public function loadLanguage(): void {
-        $languagePath = $this->getDataFolder() . "languages/" . $this->language . ".yml";
+    public function onDisable(): void {
+        $this->getLogger()->info("PDM Plugin Disabled.");
+    }
 
-        if (!file_exists($languagePath)) {
-            $this->getLogger()->warning("Language file for {$this->language} not found. Using default.");
-            $languagePath = $this->getDataFolder() . "languages/en.yml"; // Default to English
+    private function loadLanguage(): void {
+        // Placeholder for language loading logic
+        $this->getLogger()->info("Loaded language: {$this->language}");
+    }
+
+    public function onPlayerMove(PlayerMoveEvent $event): void {
+        $player = $event->getPlayer();
+        if (!$player instanceof Player) return;
+
+        $this->detectHacks($player);
+    }
+
+    public function onPlayerJoin(PlayerJoinEvent $event): void {
+        $player = $event->getPlayer();
+        $this->playerData[$player->getName()] = [
+            "warnings" => 0,
+            "lastCheckTime" => 0
+        ];
+    }
+
+    public function onPlayerQuit(PlayerQuitEvent $event): void {
+        $player = $event->getPlayer();
+        unset($this->playerData[$player->getName()]);
+    }
+
+    public function onPlayerInteractEntity(PlayerInteractEntityEvent $event): void {
+        $player = $event->getPlayer();
+        if (!$player instanceof Player) return;
+
+        $this->detectHacks($player);
+    }
+
+    private function detectHacks(Player $player): void {
+        $currentTime = microtime(true);
+        $playerName = $player->getName();
+
+        // Ensure player data exists
+        if (!isset($this->playerData[$playerName])) {
+            $this->playerData[$playerName] = [
+                "warnings" => 0,
+                "lastCheckTime" => 0
+            ];
         }
 
-        $this->languageConfig = new Config($languagePath, Config::YAML);
+        // Prevent excessive checks
+        if ($currentTime - $this->playerData[$playerName]["lastCheckTime"] < 1) {
+            return;
+        }
+
+        $this->playerData[$playerName]["lastCheckTime"] = $currentTime;
+
+        // AutoAura Detection
+        if ($this->autoAuraEnabled && $this->detectAutoAura($player)) {
+            $this->handleKick($player, "AutoAura detected!");
+            return;
+        }
+
+        // Hitbox Detection
+        if ($this->hitboxEnabled && $this->detectHitbox($player)) {
+            $this->handleKick($player, "Hitbox hack detected!");
+        }
     }
 
-    public function getLanguageMessage(string $key): string {
-        return $this->languageConfig->getNested("messages." . $key, "Message not found");
-    }
-
-    // Detect AutoAura hack (basic example, needs refinement)
-    public function detectAutoAura(Player $player): bool {
-        // Example: Player too close to others
-        $playerPos = $player->getPosition();
-        $players = $this->getServer()->getOnlinePlayers();
-
-        foreach ($players as $target) {
-            if ($target->getPosition()->distance($playerPos) < 5) {
+    private function detectAutoAura(Player $player): bool {
+        $radius = 5;
+        $nearbyEntities = $player->getWorld()->getNearbyEntities($player->getBoundingBox()->expandedCopy($radius, $radius, $radius));
+        foreach ($nearbyEntities as $entity) {
+            if ($entity instanceof Player && $entity !== $player) {
+                // Perform further checks if needed
                 return true; // Detected AutoAura
             }
         }
-
         return false;
     }
 
-    // Detect Hitbox hack (basic example, needs refinement)
-    public function detectHitbox(Player $player): bool {
-        // Example: Checking hitbox size
-        $playerHitbox = $player->getBoundingBox(); 
-        $normalHitbox = new Vector3(0.6, 1.8, 0.6); 
-
-        if ($playerHitbox->getVolume() > $normalHitbox->getVolume() * 1.5) {
-            return true; // Detected Hitbox hack
-        }
-
-        return false;
+    private function detectHitbox(Player $player): bool {
+        $normalHitbox = $player->getBoundingBox();
+        $playerHitbox = $player->getBoundingBox();
+        $tolerance = 1.1; // Allow a small margin of error
+        return $playerHitbox->getVolume() > $normalHitbox->getVolume() * $tolerance;
     }
 
-    // Handle kick logic after detecting a hack
-    public function handleKick(Player $player, string $message): void {
-        // Fetch message from language
-        $kickMessage = $this->getLanguageMessage($message);
-        $player->kick($kickMessage, false);
+    private function handleKick(Player $player, string $reason): void {
+        $playerName = $player->getName();
 
-        // Notify staff if enabled
-        if ($this->config->get("notify_staff_on_detection", true)) {
-            $staffMessage = str_replace("{player}", $player->getName(), $this->staffNotifyMessage);
-            foreach ($this->getServer()->getOnlinePlayers() as $staff) {
-                if ($staff->hasPermission("auradetector.reload")) {
-                    $staff->sendMessage($staffMessage);
-                }
-            }
-        }
-    }
-
-    // Player move detection for AutoAura and Hitbox
-    public function onPlayerMove(PlayerMoveEvent $event): void {
-        $player = $event->getPlayer();
-
-        if (!$player instanceof Player) return;
-
-        if ($this->autoAuraEnabled && $this->detectAutoAura($player)) {
-            $this->handleKick($player, "auto_aura_kick");
+        if (!isset($this->playerData[$playerName]["warnings"])) {
+            $this->playerData[$playerName]["warnings"] = 0;
         }
 
-        if ($this->hitboxEnabled && $this->detectHitbox($player)) {
-            $this->handleKick($player, "hitbox_kick");
+        $this->playerData[$playerName]["warnings"]++;
+
+        if ($this->playerData[$playerName]["warnings"] >= $this->kickThreshold) {
+            $player->kick($reason);
+            $this->getLogger()->info("Kicked {$playerName} for: {$reason}");
+        } else {
+            $remainingWarnings = $this->kickThreshold - $this->playerData[$playerName]["warnings"];
+            $player->sendMessage("Warning! {$reason} ({$remainingWarnings} warnings left before kick)");
+        }
+
+        // Debug logging
+        if ($this->getConfig()->get("debug", false)) {
+            $this->getLogger()->info("Debug: {$playerName} - {$reason}");
         }
     }
 }
