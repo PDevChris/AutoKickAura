@@ -1,31 +1,22 @@
 # Plugin Configuration for AutoKickAura
 
 # Enable or disable AutoAura detection
-autoaura_enabled: true
+autoAuraEnabled: true
 
 # Enable or disable Hitbox detection
-hitbox_enabled: true
+hitboxEnabled: true
 
-# The number of kicks before a player is banned (set to 0 to disable)
-kick_threshold: 3  # Number of kicks before a player gets banned.
+# The number of warnings before a player gets kicked
+kick_threshold: 3
 
-# Duration of ban in days (used only if ban is enabled)
-ban_duration: 6  # 6 days duration for the ban.
+# Ban duration in hours (set to 0 for no banning, only kicking)
+ban_duration: 6
 
-# Message to show when a player is kicked for AutoAura
-autoaura_kick_message: "You have been kicked for using AutoAura!"
+# Messages displayed to the player
+messages:
+  auto_aura_kick: "AutoAura detected! You have been kicked."
+  hitbox_kick: "Hitbox hack detected! You have been kicked."
+  warning_message: "Warning! {reason} ({remaining} warnings left before kick)"
 
-# Message to show when a player is kicked for Hitbox
-hitbox_kick_message: "You have been kicked for using Hitbox!"
-
-# Message to show when a player is banned for using hacks
-ban_message: "You have been banned for using hacks!"
-
-# If true, staff members will be notified when a player is detected using hacks
-notify_staff_on_detection: true
-
-# The message that will be sent to staff when a player is detected using hacks
-staff_notify_message: "Player {player} was detected using hacks and has been kicked/banned."
-
-# General plugin status (true means the plugin is active)
-enabled: true
+# Debugging options
+debug: false
