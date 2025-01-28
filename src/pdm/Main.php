@@ -22,20 +22,47 @@ class Main extends PluginBase {
     public $autoAuraKickMessage = "AutoAura detected!";
     public $hitboxKickMessage = "Hitbox hack detected!";
 
-    public function onEnable(): void {
+   public function onEnable(): void {
         $this->saveDefaultConfig();
         $this->reloadConfig();
-
-        // Load configuration with defaults
-        $this->autoAuraEnabled = $this->getConfig()->get("autoAuraEnabled", true);
-        $this->hitboxEnabled = $this->getConfig()->get("hitboxEnabled", true);
-        $this->kickThreshold = max(0, $this->getConfig()->get("kick_threshold", 3)); // Ensure non-negative
-        $this->banDuration = max(0, $this->getConfig()->get("ban_duration", 6)); // Ensure non-negative
-
-        // Register the EventListener
+    
+        // Load configuration values
+        $this->autoAuraEnabled = (bool)$this->getConfig()->get("autoAuraEnabled", true);
+        $this->hitboxEnabled = (bool)$this->getConfig()->get("hitboxEnabled", true);
+        $this->kickThreshold = max(0, (int)$this->getConfig()->get("kick_threshold", 3));
+        $this->banDuration = max(0, (int)$this->getConfig()->get("ban_duration", 6));
+    
+        // Load messages
+        $this->autoAuraKickMessage = $this->getConfig()->getNested("messages.auto_aura_kick", "AutoAura detected!");
+        $this->hitboxKickMessage = $this->getConfig()->getNested("messages.hitbox_kick", "Hitbox hack detected!");
+    
         $this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
         $this->getLogger()->info("PDM Plugin Enabled.");
     }
+
+public function handleKick(Player $player, string $reason): void {
+    $playerName = $player->getName();
+
+    if (!isset($this->playerData[$playerName])) {
+        $this->playerData[$playerName] = ["warnings" => 0];
+    }
+
+    $this->playerData[$playerName]["warnings"]++;
+
+    if ($this->playerData[$playerName]["warnings"] >= $this->kickThreshold) {
+        $player->kick($reason);
+        $this->getLogger()->info("Kicked {$playerName} for: {$reason}");
+    } else {
+        $remainingWarnings = $this->kickThreshold - $this->playerData[$playerName]["warnings"];
+        $warningMessage = str_replace(
+            ["{reason}", "{remaining}"],
+            [$reason, $remainingWarnings],
+            $this->getConfig()->getNested("messages.warning_message", "Warning! {reason} ({remaining} warnings left before kick)")
+        );
+        $player->sendMessage($warningMessage);
+    }
+}
+
 
     public function onDisable(): void {
         $this->getLogger()->info("PDM Plugin Disabled.");
@@ -61,6 +88,10 @@ class Main extends PluginBase {
 
     public function handleKick(Player $player, string $reason): void {
     $playerName = $player->getName();
+        if ($player->hasPermission("pdm.bypass")) {
+        $this->getLogger()->info("Skipped punishment for {$player->getName()} (bypass permission).");
+        return;
+    }
 
     // Ensure warnings are tracked properly
     if (!isset($this->playerData[$playerName])) {
