@@ -14,37 +14,8 @@ permissions:
     description: Allows a user to reload the plugin configuration.
     default: op
   auradetector.kick:
-    description: Allows a user to manually kick a player using /kick command for hacks.
+    description: Allows a user to manually kick players for suspected hacks.
     default: op
-  auradetector.ban:
-    description: Allows a user to manually ban a player for hacks.
+  auradetector.notify:
+    description: Allows a user to receive hack detection notifications.
     default: op
-config:
-  # AutoAura and Hitbox hack detection settings
-  enabled: true  # Whether hack detection is enabled
-  autoaura_enabled: true  # Enable AutoAura detection
-  hitbox_enabled: true  # Enable Hitbox detection
-  
-  # Detection thresholds
-  kick_threshold: 3  # Number of kicks before a player gets banned.
-  ban_threshold: 0  # Set to 0 for immediate ban on first offense.
-  ban_duration: 6  # Duration of the ban in days
-  
-  # Messages
-  kick_message: "You have been kicked for using hacks!"
-  ban_message: "You have been banned for using hacks!"
-  autoaura_kick_message: "You have been kicked for using AutoAura!"
-  hitbox_kick_message: "You have been kicked for using a Hitbox hack!"
-  staff_notify_message: "Player {player} was detected using hacks and has been kicked/banned."
-  notify_staff_on_detection: true  # Whether staff members should be notified when a player is caught.
-  
-  # Logging options
-  log_enabled: true  # Whether to log hack detections to console or a file.
-  log_file: "plugin_logs/detection_log.txt"  # Path to the log file
-
-  # Language settings
-  language: en  # Set to the desired language (default: en)
-  
-  # Optional feature for custom ban duration (if set, players can be banned for a limited time)
-  temporary_ban_enabled: false  # If true, temporary ban will be enabled with duration from config.
-  temporary_ban_duration: 24  # Default duration of temporary bans in hours 
